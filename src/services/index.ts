@@ -25,23 +25,17 @@ api.interceptors.response.use(
 	async (err) => {
 		const error = err as AxiosError;
 		const originalRequest = error.config as CustomAxiosRequestConfig;
+		// Don't try to refresh for auth endpoints to avoid loops
+		const reqUrl = String(originalRequest?.url || "");
+		if (
+			reqUrl.includes("/auth/refresh") ||
+			reqUrl.includes("/auth/login") ||
+			reqUrl.includes("/auth/me")
+		) {
+			return Promise.reject(error);
+		}
 
-		/*     if (error.response?.status === 417) {
-      if (error.config?.url === '/info/me') {
-        const responseData = error.response?.data as {
-          data: { is_verified: boolean; is_starred: boolean };
-        };
-
-        if (responseData.data.is_verified === false) {
-          window.location.href = '/auth/login';
-        }
-        if (responseData.data.is_starred === false) {
-          window.location.href = '/auth/login';
-        }
-      }
-    } */
-
-		if (error.response?.status === 401 && !originalRequest._retry) {
+		if (error.response?.status === 401 && !originalRequest?._retry) {
 			originalRequest._retry = true;
 
 			try {
@@ -50,20 +44,18 @@ api.interceptors.response.use(
 					process.env.NEXT_PUBLIC_API_BASEURL ||
 					"";
 				const refreshUrl = `${base.replace(/\/$/, "")}/auth/refresh`;
-				await axios.post(
-					refreshUrl,
-					{},
-					{
-						withCredentials: true,
-					},
-				);
+				// Use the plain axios instance so interceptors on `api` don't run for the refresh call
+				await axios.post(refreshUrl, {}, { withCredentials: true });
 
 				return api(originalRequest);
 			} catch {
-				toast.error("Session expired. Please login again.");
-				setTimeout(() => {
-					window.location.href = "/auth/login";
-				}, 2000);
+				// Let callers decide how to handle an expired session. Show a toast but don't force a redirect here.
+				try {
+					toast.error("Session expired. Please login again.");
+				} catch {}
+				// annotate the error so callers can check for this case
+				(error as any).code = "AUTH_REFRESH_FAILED";
+				return Promise.reject(error);
 			}
 		}
 
