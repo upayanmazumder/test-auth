@@ -44,17 +44,16 @@ api.interceptors.response.use(
 					process.env.NEXT_PUBLIC_API_BASEURL ||
 					"";
 				const refreshUrl = `${base.replace(/\/$/, "")}/auth/refresh`;
-				// Use the plain axios instance so interceptors on `api` don't run for the refresh call
 				await axios.post(refreshUrl, {}, { withCredentials: true });
 
 				return api(originalRequest);
 			} catch {
-				// Let callers decide how to handle an expired session. Show a toast but don't force a redirect here.
 				try {
 					toast.error("Session expired. Please login again.");
 				} catch {}
-				// annotate the error so callers can check for this case
-				(error as any).code = "AUTH_REFRESH_FAILED";
+
+				(error as unknown as Record<string, unknown>)["code"] =
+					"AUTH_REFRESH_FAILED";
 				return Promise.reject(error);
 			}
 		}

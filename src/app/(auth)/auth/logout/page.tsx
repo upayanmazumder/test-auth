@@ -16,9 +16,7 @@ export default function LogoutPage() {
 		(async () => {
 			try {
 				await api.post("/auth/logout");
-			} catch (e) {
-				// ignore backend logout errors
-			}
+			} catch (e) {}
 
 			logoutStore();
 

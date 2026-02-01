@@ -16,15 +16,12 @@ export default function LoginPage() {
 		if (session) router.replace("/dashboard/round0");
 	}, [session, status, router]);
 
-	// Try to sync session from backend cookies (after OAuth redirect)
 	useEffect(() => {
 		(async () => {
 			try {
 				await api.get("/auth/me");
 				router.replace("/dashboard/round0");
-			} catch (e) {
-				// ignore - no session available
-			}
+			} catch (e) {}
 		})();
 	}, [router]);
 

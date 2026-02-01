@@ -19,7 +19,6 @@ function SessionSync({ children }: { children: ReactNode }) {
 			return;
 		}
 
-		// If no NextAuth session, try to sync from backend cookie session.
 		(async () => {
 			try {
 				const state = useAuthStore.getState();
@@ -31,11 +30,9 @@ function SessionSync({ children }: { children: ReactNode }) {
 				if (!mounted) return;
 				const data = res.data as { email?: string };
 				if (data?.email) setEmail(data.email);
-				// mark as verified in store so app routes don't force-login.
+
 				setToken("cookie-session");
-			} catch {
-				// ignore - no backend session
-			}
+			} catch {}
 		})();
 
 		return () => {
